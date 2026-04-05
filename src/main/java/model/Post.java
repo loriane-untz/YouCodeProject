@@ -31,5 +31,3 @@ public class Post {
         return tags;
     }
 }
-
-

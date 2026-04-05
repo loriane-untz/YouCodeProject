@@ -7,6 +7,8 @@ import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -14,6 +16,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -21,9 +24,13 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import main.java.model.Post;
+import main.java.model.TagCatalog;
 
 public class PanelCreatePost extends JPanel {
     private static final int FORM_WIDTH = 520;
+    private static final int TAG_PANEL_WIDTH = 220;
+    private static final int TAG_PANEL_HEIGHT = 320;
+    private static final int TAG_PANEL_TOP_OFFSET = 8;
     private static final Color PLACEHOLDER_COLOR = Color.LIGHT_GRAY;
     private static final Color INPUT_COLOR = Color.BLACK;
     private static final double TITLE_GAP_INCHES = 0.5;
@@ -38,10 +45,12 @@ public class PanelCreatePost extends JPanel {
         backButton.addActionListener(event -> onBack.run());
 
         JButton doneButton = new JButton("✓");
+        Set<String> selectedTags = new LinkedHashSet<>();
 
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
         formPanel.setOpaque(false);
+        formPanel.setAlignmentY(TOP_ALIGNMENT);
         formPanel.setMaximumSize(new Dimension(FORM_WIDTH, Integer.MAX_VALUE));
         formPanel.setPreferredSize(new Dimension(FORM_WIDTH, 0));
 
@@ -68,7 +77,7 @@ public class PanelCreatePost extends JPanel {
                 return;
             }
 
-            onDone.accept(new Post(title, body, Set.of()));
+            onDone.accept(new Post(title, body, selectedTags));
         });
 
         JScrollPane bodyScrollPane = new JScrollPane(bodyArea);
@@ -91,15 +100,87 @@ public class PanelCreatePost extends JPanel {
         formPanel.add(bodyScrollPane);
         formPanel.add(Box.createVerticalStrut(12));
         formPanel.add(buttonRow);
+        
+        JPanel tagSelectorPanel = buildTagSelector(selectedTags, promptLabel.getPreferredSize().height);
 
-        JPanel centeredFormRow = new JPanel();
-        centeredFormRow.setOpaque(false);
-        centeredFormRow.setLayout(new BoxLayout(centeredFormRow, BoxLayout.X_AXIS));
-        centeredFormRow.add(Box.createHorizontalGlue());
-        centeredFormRow.add(formPanel);
-        centeredFormRow.add(Box.createHorizontalGlue());
+        JPanel contentRow = new JPanel();
+        contentRow.setOpaque(false);
+        contentRow.setLayout(new BoxLayout(contentRow, BoxLayout.X_AXIS));
+        contentRow.add(Box.createHorizontalGlue());
+        contentRow.add(formPanel);
+        contentRow.add(Box.createHorizontalStrut(28));
+        contentRow.add(tagSelectorPanel);
+        contentRow.add(Box.createHorizontalGlue());
 
-        add(centeredFormRow, BorderLayout.CENTER);
+        add(contentRow, BorderLayout.CENTER);
+    }
+
+    // Effects: creates the tag-selection column shown to the right of the post form.
+    private JPanel buildTagSelector(Set<String> selectedTags, int titleHeight) {
+        JPanel tagSelectorColumn = new JPanel();
+        tagSelectorColumn.setLayout(new BoxLayout(tagSelectorColumn, BoxLayout.Y_AXIS));
+        tagSelectorColumn.setOpaque(false);
+        tagSelectorColumn.setAlignmentY(TOP_ALIGNMENT);
+        tagSelectorColumn.add(Box.createVerticalStrut(28 + titleHeight + getTitleGapPixels() + TAG_PANEL_TOP_OFFSET));
+
+        JPanel tagPanel = new JPanel();
+        tagPanel.setLayout(new BoxLayout(tagPanel, BoxLayout.Y_AXIS));
+        tagPanel.setOpaque(false);
+        tagPanel.setAlignmentX(LEFT_ALIGNMENT);
+        tagPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+        tagPanel.setMaximumSize(new Dimension(TAG_PANEL_WIDTH, Integer.MAX_VALUE));
+
+        for (Map.Entry<String, Set<String>> entry : TagCatalog.getTagsByCategory().entrySet()) {
+            tagPanel.add(buildTagCategory(entry.getKey(), entry.getValue(), selectedTags));
+        }
+
+        JScrollPane tagScrollPane = new JScrollPane(tagPanel);
+        tagScrollPane.setPreferredSize(new Dimension(TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT));
+        tagScrollPane.setMaximumSize(new Dimension(TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT));
+        tagScrollPane.setMinimumSize(new Dimension(TAG_PANEL_WIDTH, TAG_PANEL_HEIGHT));
+        tagScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tagScrollPane.getVerticalScrollBar().setUnitIncrement(12);
+        tagScrollPane.getViewport().setOpaque(false);
+        tagScrollPane.setOpaque(false);
+
+        tagSelectorColumn.add(tagScrollPane);
+        return tagSelectorColumn;
+    }
+
+    // Effects: creates one visible tag category section with checkboxes that update
+    // the set of tags selected for the post being created.
+    private JPanel buildTagCategory(String categoryName, Set<String> categoryTags, Set<String> selectedTags) {
+        JPanel categoryPanel = new JPanel();
+        categoryPanel.setLayout(new BoxLayout(categoryPanel, BoxLayout.Y_AXIS));
+        categoryPanel.setOpaque(false);
+        categoryPanel.setAlignmentX(LEFT_ALIGNMENT);
+
+        JLabel categoryLabel = new JLabel(categoryName);
+        categoryLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        categoryLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 6, 0));
+        categoryLabel.setAlignmentX(LEFT_ALIGNMENT);
+        categoryPanel.add(categoryLabel);
+
+        for (String tag : categoryTags) {
+            JCheckBox tagCheckBox = new JCheckBox(tag);
+            tagCheckBox.setOpaque(false);
+            tagCheckBox.setAlignmentX(LEFT_ALIGNMENT);
+            tagCheckBox.addActionListener(event -> {
+                if (tagCheckBox.isSelected()) {
+                    selectedTags.add(tag);
+                } else {
+                    selectedTags.remove(tag);
+                }
+            });
+
+            categoryPanel.add(tagCheckBox);
+        }
+
+        categoryPanel.add(Box.createVerticalStrut(10));
+        return categoryPanel;
     }
 
     // Effects: displays light placeholder text in the title field until the user

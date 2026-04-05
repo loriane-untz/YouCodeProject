@@ -20,7 +20,6 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 
 import main.java.model.Post;
@@ -36,10 +35,9 @@ public class PanelHome extends JPanel {
     private Consumer<Post> onViewPost;
     private JPanel contentPanel;
     private JButton filterButton;
-    private JPopupMenu filterMenu;
     private boolean usingNarrowLayout;
+    private boolean filterPanelOpen;
     private Set<String> selectedTags;
-    private Set<String> expandedCategories;
 
     // Effects: creates the home screen panel and rebuilds the layout when the screen
     // becomes wide or narrow enough to need a different arrangement.
@@ -48,7 +46,6 @@ public class PanelHome extends JPanel {
         this.onNewPost = onNewPost;
         this.onViewPost = onViewPost;
         this.selectedTags = new LinkedHashSet<>();
-        this.expandedCategories = new LinkedHashSet<>();
 
         setLayout(new BorderLayout(0, 16));
         setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
@@ -70,7 +67,7 @@ public class PanelHome extends JPanel {
     }
 
     // Effects: builds the top section of the home screen with a new-post button
-    // on the left and a sort button on the right.
+    // on the left and a filter button on the right.
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
@@ -79,7 +76,7 @@ public class PanelHome extends JPanel {
         newPostButton.addActionListener(event -> onNewPost.run());
 
         filterButton = new JButton("Filter");
-        filterButton.addActionListener(event -> toggleFilterMenu());
+        filterButton.addActionListener(event -> toggleFilterPanel());
 
         header.add(newPostButton, BorderLayout.WEST);
         header.add(filterButton, BorderLayout.EAST);
@@ -111,10 +108,16 @@ public class PanelHome extends JPanel {
             narrowContent.setOpaque(false);
             narrowContent.setLayout(new BorderLayout());
             narrowContent.add(postList, BorderLayout.CENTER);
+            if (filterPanelOpen) {
+                narrowContent.add(buildFilterPanel(), BorderLayout.EAST);
+            }
 
             contentPanel.add(narrowContent, BorderLayout.CENTER);
         } else {
             contentPanel.add(postList, BorderLayout.CENTER);
+            if (filterPanelOpen) {
+                contentPanel.add(buildFilterPanel(), BorderLayout.EAST);
+            }
         }
 
         revalidate();
@@ -182,24 +185,28 @@ public class PanelHome extends JPanel {
         return (int) Math.round(screenDpi * POST_CARD_HEIGHT_INCHES);
     }
 
-    // Effects: shows or hides the filter dropdown menu below the filter button.
-    private void toggleFilterMenu() {
-        if (filterMenu != null && filterMenu.isVisible()) {
-            filterMenu.setVisible(false);
-            return;
-        }
-
-        filterMenu = buildFilterMenu();
-        filterMenu.show(filterButton, 0, filterButton.getHeight());
+    // Effects: shows or hides the right-side filter panel.
+    private void toggleFilterPanel() {
+        filterPanelOpen = !filterPanelOpen;
+        rebuildContentLayout();
     }
 
-    // Effects: creates a scrollable popup menu containing expandable tag categories
+    // Effects: creates a right-side filter panel containing visible tag categories
     // and multi-select checkboxes for filtering the home-page post list.
-    private JPopupMenu buildFilterMenu() {
-        JPopupMenu popupMenu = new JPopupMenu();
+    private JPanel buildFilterPanel() {
+        JPanel filterPanel = new JPanel(new BorderLayout(0, 12));
+        filterPanel.setBackground(Color.WHITE);
+        filterPanel.setOpaque(true);
+        filterPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+        filterPanel.setPreferredSize(new Dimension(getFilterPanelWidth(), 0));
 
         JPanel filterContent = new JPanel();
         filterContent.setLayout(new BoxLayout(filterContent, BoxLayout.Y_AXIS));
+        filterContent.setBackground(Color.WHITE);
+        filterContent.setOpaque(true);
         filterContent.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         for (Map.Entry<String, Set<String>> entry : TagCatalog.getTagsByCategory().entrySet()) {
@@ -208,32 +215,35 @@ public class PanelHome extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(filterContent);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setPreferredSize(new Dimension(280, 260));
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.setOpaque(true);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.getViewport().setOpaque(true);
         scrollPane.getVerticalScrollBar().setUnitIncrement(12);
 
-        popupMenu.add(scrollPane);
-        return popupMenu;
+        filterPanel.add(scrollPane, BorderLayout.CENTER);
+
+        return filterPanel;
     }
 
-    // Effects: creates one category section with a toggle button and an expandable
+    // Effects: creates one category section with a visible header and the full
     // list of checkboxes for the tags in that category.
     private JPanel buildCategorySection(String categoryName, Set<String> categoryTags) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setOpaque(false);
         section.setAlignmentX(LEFT_ALIGNMENT);
 
-        JButton categoryButton = new JButton(getCategoryButtonLabel(categoryName));
-        categoryButton.setHorizontalAlignment(JButton.LEFT);
-        categoryButton.setFocusPainted(false);
-        categoryButton.setContentAreaFilled(false);
-        categoryButton.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        categoryButton.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel categoryHeader = new JLabel(categoryName);
+        categoryHeader.setFont(new Font("SansSerif", Font.BOLD, 15));
+        categoryHeader.setBorder(BorderFactory.createEmptyBorder(6, 4, 4, 4));
+        categoryHeader.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel tagPanel = new JPanel();
         tagPanel.setLayout(new BoxLayout(tagPanel, BoxLayout.Y_AXIS));
+        tagPanel.setOpaque(false);
         tagPanel.setAlignmentX(LEFT_ALIGNMENT);
         tagPanel.setBorder(BorderFactory.createEmptyBorder(0, 18, 6, 0));
-        tagPanel.setVisible(expandedCategories.contains(categoryName));
 
         for (String tag : categoryTags) {
             JCheckBox tagCheckBox = new JCheckBox(tag);
@@ -253,30 +263,16 @@ public class PanelHome extends JPanel {
             tagPanel.add(tagCheckBox);
         }
 
-        categoryButton.addActionListener(event -> {
-            if (expandedCategories.contains(categoryName)) {
-                expandedCategories.remove(categoryName);
-            } else {
-                expandedCategories.add(categoryName);
-            }
-
-            filterMenu.setVisible(false);
-            toggleFilterMenu();
-        });
-
-        section.add(categoryButton);
+        section.add(categoryHeader);
         section.add(tagPanel);
 
         return section;
     }
 
-    // Effects: returns the label for a category button using a dropdown arrow that
-    // reflects whether the category is currently expanded.
-    private String getCategoryButtonLabel(String categoryName) {
-        if (expandedCategories.contains(categoryName)) {
-            return "▼ " + categoryName;
-        }
-
-        return "▶ " + categoryName;
+    // Effects: returns the preferred width for the side filter panel, targeting
+    // about one quarter of the current home screen width.
+    private int getFilterPanelWidth() {
+        int currentWidth = Math.max(getWidth(), 900);
+        return Math.max(220, currentWidth / 5);
     }
 }

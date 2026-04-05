@@ -39,7 +39,7 @@ public final class TagCatalog {
 
         tagsByCategory.put("Language", Set.of(
             "English",
-            "Chinese (Simplified + Traditional)",
+            "Chinese",
             "Punjabi",
             "Tagalog",
             "Hindi/Urdu",

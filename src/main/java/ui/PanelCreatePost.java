@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.util.Set;
@@ -25,6 +26,7 @@ public class PanelCreatePost extends JPanel {
     private static final int FORM_WIDTH = 520;
     private static final Color PLACEHOLDER_COLOR = Color.LIGHT_GRAY;
     private static final Color INPUT_COLOR = Color.BLACK;
+    private static final double TITLE_GAP_INCHES = 0.5;
 
     // Effects: creates the create-post screen with a button that returns the user
     // to the home page when clicked, plus text inputs for the post title and body.
@@ -44,7 +46,7 @@ public class PanelCreatePost extends JPanel {
         formPanel.setPreferredSize(new Dimension(FORM_WIDTH, 0));
 
         JLabel promptLabel = new JLabel("Whats happening?");
-        promptLabel.setFont(new Font("SansSerif", Font.ITALIC, 28));
+        promptLabel.setFont(new Font("SansSerif", Font.PLAIN, 32));
         promptLabel.setAlignmentX(LEFT_ALIGNMENT);
 
         JTextField titleField = new JTextField();
@@ -74,12 +76,21 @@ public class PanelCreatePost extends JPanel {
         bodyScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 260));
         bodyScrollPane.setAlignmentX(LEFT_ALIGNMENT);
 
+        JPanel buttonRow = new JPanel(new BorderLayout());
+        buttonRow.setOpaque(false);
+        buttonRow.setAlignmentX(LEFT_ALIGNMENT);
+        buttonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, backButton.getPreferredSize().height));
+        buttonRow.add(backButton, BorderLayout.WEST);
+        buttonRow.add(doneButton, BorderLayout.EAST);
+
         formPanel.add(Box.createVerticalStrut(28));
         formPanel.add(promptLabel);
-        formPanel.add(Box.createVerticalStrut(30));
+        formPanel.add(Box.createVerticalStrut(getTitleGapPixels()));
         formPanel.add(titleField);
         formPanel.add(Box.createVerticalStrut(24));
         formPanel.add(bodyScrollPane);
+        formPanel.add(Box.createVerticalStrut(12));
+        formPanel.add(buttonRow);
 
         JPanel centeredFormRow = new JPanel();
         centeredFormRow.setOpaque(false);
@@ -88,28 +99,7 @@ public class PanelCreatePost extends JPanel {
         centeredFormRow.add(formPanel);
         centeredFormRow.add(Box.createHorizontalGlue());
 
-        JPanel footerPanel = new JPanel(new BorderLayout());
-        footerPanel.setOpaque(false);
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 36, 0));
-
-        JPanel footerContent = new JPanel(new BorderLayout());
-        footerContent.setOpaque(false);
-        footerContent.setMaximumSize(new Dimension(FORM_WIDTH, backButton.getPreferredSize().height));
-        footerContent.setPreferredSize(new Dimension(FORM_WIDTH, backButton.getPreferredSize().height));
-        footerContent.add(backButton, BorderLayout.WEST);
-        footerContent.add(doneButton, BorderLayout.EAST);
-
-        JPanel centeredFooterRow = new JPanel();
-        centeredFooterRow.setOpaque(false);
-        centeredFooterRow.setLayout(new BoxLayout(centeredFooterRow, BoxLayout.X_AXIS));
-        centeredFooterRow.add(Box.createHorizontalGlue());
-        centeredFooterRow.add(footerContent);
-        centeredFooterRow.add(Box.createHorizontalGlue());
-
-        footerPanel.add(centeredFooterRow, BorderLayout.NORTH);
-
         add(centeredFormRow, BorderLayout.CENTER);
-        add(footerPanel, BorderLayout.SOUTH);
     }
 
     // Effects: displays light placeholder text in the title field until the user
@@ -180,5 +170,12 @@ public class PanelCreatePost extends JPanel {
         }
 
         return area.getText().trim();
+    }
+
+    // Effects: returns the pixel spacing that most closely matches a 1 inch gap
+    // below the create-post title on the current display.
+    private int getTitleGapPixels() {
+        int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
+        return (int) Math.round(screenDpi * TITLE_GAP_INCHES);
     }
 }

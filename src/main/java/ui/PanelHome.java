@@ -39,7 +39,7 @@ public class PanelHome extends JPanel {
         this.onViewPost = onViewPost;
 
         setLayout(new BorderLayout(0, 16));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
 
         add(buildHeader(), BorderLayout.NORTH);
 

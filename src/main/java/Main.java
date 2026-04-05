@@ -48,7 +48,13 @@ public class Main {
 
     // Effects: replaces the current screen with the create-post panel.
     private static void showCreatePostPanel(JFrame frame, PostRepo repo) {
-        PanelCreatePost createPostPanel = new PanelCreatePost(() -> showHomePanel(frame, repo));
+        PanelCreatePost createPostPanel = new PanelCreatePost(
+            () -> showHomePanel(frame, repo),
+            post -> {
+                repo.addPost(post);
+                showHomePanel(frame, repo);
+            }
+        );
         frame.setContentPane(createPostPanel);
         frame.revalidate();
         frame.repaint();

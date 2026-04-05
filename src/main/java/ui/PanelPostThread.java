@@ -24,7 +24,7 @@ public class PanelPostThread extends JPanel {
         JLabel title = new JLabel(post.getTitle());
         title.setFont(new Font("SansSerif", Font.BOLD, 30));
 
-        JButton backButton = new JButton("←");
+        JButton backButton = new JButton("X");
         backButton.addActionListener(event -> onBack.run());
         header.add(title, BorderLayout.WEST);
         header.add(backButton, BorderLayout.EAST);

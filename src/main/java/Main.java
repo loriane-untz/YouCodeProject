@@ -6,6 +6,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import main.java.model.Post;
+import main.java.model.TagCatalog;
 import main.java.model.PostRepo;
 import main.java.ui.PanelHome;
 
@@ -36,19 +37,7 @@ public class Main {
     // Effects: creates a repository with the predefined tags and a few sample posts
     // so the home screen has data to display when the app opens.
     private static PostRepo buildStarterRepo() {
-        Set<String> allowedTags = Set.of(
-            "English",
-            "Childcare",
-            "Finances",
-            "Pregnancy",
-            "Mental Health",
-            "Physical health",
-            "Relationships",
-            "Housing",
-            "Safety"
-        );
-
-        PostRepo repo = new PostRepo(allowedTags);
+        PostRepo repo = new PostRepo(TagCatalog.getAllTags());
 
         repo.addPost(new Post(
             "Looking for food support options",

@@ -71,14 +71,6 @@ public class Main {
     // Effects: creates a repository with the predefined tags and a few sample posts
     // so the home screen has data to display when the app opens.
     private static PostRepo buildStarterRepo() {
-        PostRepo repo = new PostRepo(TagCatalog.getAllTags());
-
-        repo.addPost(new Post(
-            "Looking for food support options",
-            "I am trying to find food banks or meal programs nearby that I can access this week.",
-            Set.of("English", "Finances")
-        ));
-
-        return repo;
+        return new PostRepo(TagCatalog.getAllTags());
     }
 }

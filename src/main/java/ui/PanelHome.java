@@ -7,6 +7,9 @@ import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -23,13 +26,17 @@ public class PanelHome extends JPanel {
     private static final double POST_CARD_HEIGHT_INCHES = 1;
 
     private PostRepo repo;
+    private Runnable onNewPost;
+    private Consumer<Post> onViewPost;
     private JPanel contentPanel;
     private boolean usingNarrowLayout;
 
     // Effects: creates the home screen panel and rebuilds the layout when the screen
     // becomes wide or narrow enough to need a different arrangement.
-    public PanelHome(PostRepo repo) {
+    public PanelHome(PostRepo repo, Runnable onNewPost, Consumer<Post> onViewPost) {
         this.repo = repo;
+        this.onNewPost = onNewPost;
+        this.onViewPost = onViewPost;
 
         setLayout(new BorderLayout(0, 16));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -57,7 +64,7 @@ public class PanelHome extends JPanel {
         header.setOpaque(false);
 
         JButton newPostButton = new JButton("New Post");
-        newPostButton.setEnabled(false);
+        newPostButton.addActionListener(event -> onNewPost.run());
 
         JButton sortButton = new JButton("Sort");
         sortButton.setEnabled(false);
@@ -118,7 +125,7 @@ public class PanelHome extends JPanel {
     }
 
     // Effects: creates a wide post card that shows only the title and tags, sized
-    // to stay close to 1.5 inches tall on the current screen.
+    // to stay close to 1 inche tall on the current screen.
     private JPanel buildPostCard(Post post) {
         int cardHeight = getPostCardHeightPixels();
 
@@ -140,8 +147,18 @@ public class PanelHome extends JPanel {
 
         JLabel tags = new JLabel("Tags: " + post.getTags());
 
+        MouseAdapter openPostListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                onViewPost.accept(post);
+            }
+        };
+
         card.add(title, BorderLayout.NORTH);
         card.add(tags, BorderLayout.SOUTH);
+        card.addMouseListener(openPostListener);
+        title.addMouseListener(openPostListener);
+        tags.addMouseListener(openPostListener);
 
         return card;
     }

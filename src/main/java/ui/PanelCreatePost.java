@@ -27,9 +27,10 @@ import main.java.model.Post;
 import main.java.model.TagCatalog;
 
 public class PanelCreatePost extends JPanel {
-    private static final int FORM_WIDTH = 520;
-    private static final int TAG_PANEL_WIDTH = 220;
-    private static final int TAG_PANEL_HEIGHT = 320;
+    private static final double PANEL_MARGIN_INCHES = 1.0;
+    private static final int FORM_WIDTH = 560;
+    private static final int TAG_PANEL_WIDTH = 240;
+    private static final int TAG_PANEL_HEIGHT = 360;
     private static final int TAG_PANEL_TOP_OFFSET = 8;
     private static final Color PLACEHOLDER_COLOR = Color.LIGHT_GRAY;
     private static final Color INPUT_COLOR = Color.BLACK;
@@ -39,7 +40,8 @@ public class PanelCreatePost extends JPanel {
     // to the home page when clicked, plus text inputs for the post title and body.
     public PanelCreatePost(Runnable onBack, Consumer<Post> onDone) {
         setLayout(new BorderLayout(0, 24));
-        setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
+        int outerMargin = getOuterMarginPixels();
+        setBorder(BorderFactory.createEmptyBorder(outerMargin, outerMargin, outerMargin, outerMargin));
 
         JButton backButton = new JButton("X");
         backButton.addActionListener(event -> onBack.run());
@@ -55,12 +57,12 @@ public class PanelCreatePost extends JPanel {
         formPanel.setPreferredSize(new Dimension(FORM_WIDTH, 0));
 
         JLabel promptLabel = new JLabel("Whats happening?");
-        promptLabel.setFont(new Font("SansSerif", Font.PLAIN, 32));
+        promptLabel.setFont(new Font("SansSerif", Font.PLAIN, 36));
         promptLabel.setAlignmentX(LEFT_ALIGNMENT);
 
         JTextField titleField = new JTextField();
-        titleField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        titleField.setPreferredSize(new Dimension(0, 42));
+        titleField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        titleField.setPreferredSize(new Dimension(0, 48));
         titleField.setAlignmentX(LEFT_ALIGNMENT);
         installPlaceholder(titleField, "Title");
 
@@ -81,8 +83,8 @@ public class PanelCreatePost extends JPanel {
         });
 
         JScrollPane bodyScrollPane = new JScrollPane(bodyArea);
-        bodyScrollPane.setPreferredSize(new Dimension(0, 210));
-        bodyScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 260));
+        bodyScrollPane.setPreferredSize(new Dimension(0, 240));
+        bodyScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 290));
         bodyScrollPane.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel buttonRow = new JPanel(new BorderLayout());
@@ -92,27 +94,35 @@ public class PanelCreatePost extends JPanel {
         buttonRow.add(backButton, BorderLayout.WEST);
         buttonRow.add(doneButton, BorderLayout.EAST);
 
-        formPanel.add(Box.createVerticalStrut(28));
+        formPanel.add(Box.createVerticalStrut(32));
         formPanel.add(promptLabel);
         formPanel.add(Box.createVerticalStrut(getTitleGapPixels()));
         formPanel.add(titleField);
-        formPanel.add(Box.createVerticalStrut(24));
+        formPanel.add(Box.createVerticalStrut(28));
         formPanel.add(bodyScrollPane);
-        formPanel.add(Box.createVerticalStrut(12));
+        formPanel.add(Box.createVerticalStrut(16));
         formPanel.add(buttonRow);
         
         JPanel tagSelectorPanel = buildTagSelector(selectedTags, promptLabel.getPreferredSize().height);
 
-        JPanel contentRow = new JPanel();
-        contentRow.setOpaque(false);
-        contentRow.setLayout(new BoxLayout(contentRow, BoxLayout.X_AXIS));
-        contentRow.add(Box.createHorizontalGlue());
-        contentRow.add(formPanel);
-        contentRow.add(Box.createHorizontalStrut(28));
-        contentRow.add(tagSelectorPanel);
-        contentRow.add(Box.createHorizontalGlue());
+        JPanel formAndTagsGroup = new JPanel();
+        formAndTagsGroup.setOpaque(false);
+        formAndTagsGroup.setLayout(new BoxLayout(formAndTagsGroup, BoxLayout.X_AXIS));
+        formAndTagsGroup.add(formPanel);
+        formAndTagsGroup.add(Box.createHorizontalStrut(32));
+        formAndTagsGroup.add(tagSelectorPanel);
 
-        add(contentRow, BorderLayout.CENTER);
+        JPanel centeredContent = new JPanel();
+        centeredContent.setOpaque(false);
+        centeredContent.setLayout(new java.awt.GridBagLayout());
+
+        java.awt.GridBagConstraints constraints = new java.awt.GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.anchor = java.awt.GridBagConstraints.CENTER;
+        centeredContent.add(formAndTagsGroup, constraints);
+
+        add(centeredContent, BorderLayout.CENTER);
     }
 
     // Effects: creates the tag-selection column shown to the right of the post form.
@@ -159,8 +169,8 @@ public class PanelCreatePost extends JPanel {
         categoryPanel.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel categoryLabel = new JLabel(categoryName);
-        categoryLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
-        categoryLabel.setBorder(BorderFactory.createEmptyBorder(4, 0, 6, 0));
+        categoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        categoryLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
         categoryLabel.setAlignmentX(LEFT_ALIGNMENT);
         categoryPanel.add(categoryLabel);
 
@@ -258,5 +268,12 @@ public class PanelCreatePost extends JPanel {
     private int getTitleGapPixels() {
         int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
         return (int) Math.round(screenDpi * TITLE_GAP_INCHES);
+    }
+
+    // Effects: returns the pixel margin that most closely matches a 1 inch outer
+    // border on the current display.
+    private int getOuterMarginPixels() {
+        int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
+        return (int) Math.round(screenDpi * PANEL_MARGIN_INCHES);
     }
 }

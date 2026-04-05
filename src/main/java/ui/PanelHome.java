@@ -9,6 +9,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +30,11 @@ import main.java.model.TagCatalog;
 
 public class PanelHome extends JPanel {
     private static final int NARROW_LAYOUT_WIDTH = 800;
-    private static final double POST_CARD_HEIGHT_INCHES = 1;
+    private static final double PANEL_MARGIN_INCHES = 1.0;
+    private static final double POST_CARD_HEIGHT_INCHES = 0.8;
+    private static final int FILTER_PANEL_GAP = 12;
+    private static final int POST_CARD_GAP = 22;
+    private static final int HEADER_TO_CONTENT_GAP = 28;
 
     private PostRepo repo;
     private Runnable onNewPost;
@@ -47,8 +53,9 @@ public class PanelHome extends JPanel {
         this.onViewPost = onViewPost;
         this.selectedTags = new LinkedHashSet<>();
 
-        setLayout(new BorderLayout(0, 16));
-        setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
+        setLayout(new BorderLayout(0, HEADER_TO_CONTENT_GAP));
+        int outerMargin = getOuterMarginPixels();
+        setBorder(BorderFactory.createEmptyBorder(outerMargin, outerMargin, outerMargin, outerMargin));
 
         add(buildHeader(), BorderLayout.NORTH);
 
@@ -146,7 +153,7 @@ public class PanelHome extends JPanel {
 
         JPanel card = new JPanel(new BorderLayout(0, 8));
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createEmptyBorder(0, 0, 16, 0),
+            BorderFactory.createEmptyBorder(0, 0, POST_CARD_GAP, 0),
             BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Color.LIGHT_GRAY),
                 BorderFactory.createEmptyBorder(16, 16, 16, 16)
@@ -160,7 +167,7 @@ public class PanelHome extends JPanel {
         JLabel title = new JLabel(post.getTitle());
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
 
-        JLabel tags = new JLabel("Tags: " + post.getTags());
+        JLabel tags = new JLabel(formatTags(post.getTags()));
 
         MouseAdapter openPostListener = new MouseAdapter() {
             @Override
@@ -185,6 +192,13 @@ public class PanelHome extends JPanel {
         return (int) Math.round(screenDpi * POST_CARD_HEIGHT_INCHES);
     }
 
+    // Effects: returns the pixel margin that most closely matches a 1 inch outer
+    // border on the current display.
+    private int getOuterMarginPixels() {
+        int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
+        return (int) Math.round(screenDpi * PANEL_MARGIN_INCHES);
+    }
+
     // Effects: shows or hides the right-side filter panel.
     private void toggleFilterPanel() {
         filterPanelOpen = !filterPanelOpen;
@@ -194,6 +208,10 @@ public class PanelHome extends JPanel {
     // Effects: creates a right-side filter panel containing visible tag categories
     // and multi-select checkboxes for filtering the home-page post list.
     private JPanel buildFilterPanel() {
+        JPanel filterPanelWrapper = new JPanel(new BorderLayout());
+        filterPanelWrapper.setOpaque(false);
+        filterPanelWrapper.setBorder(BorderFactory.createEmptyBorder(0, FILTER_PANEL_GAP, 0, 0));
+
         JPanel filterPanel = new JPanel(new BorderLayout(0, 12));
         filterPanel.setBackground(Color.WHITE);
         filterPanel.setOpaque(true);
@@ -222,8 +240,9 @@ public class PanelHome extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(12);
 
         filterPanel.add(scrollPane, BorderLayout.CENTER);
+        filterPanelWrapper.add(filterPanel, BorderLayout.CENTER);
 
-        return filterPanel;
+        return filterPanelWrapper;
     }
 
     // Effects: creates one category section with a visible header and the full
@@ -274,5 +293,28 @@ public class PanelHome extends JPanel {
     private int getFilterPanelWidth() {
         int currentWidth = Math.max(getWidth(), 900);
         return Math.max(220, currentWidth / 5);
+    }
+
+    // Effects: returns the post's tags as bracketed labels such as
+    // [English] [Mental Health].
+    private String formatTags(Set<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+
+        java.util.List<String> orderedTags = new ArrayList<>(tags);
+        Collections.sort(orderedTags);
+
+        StringBuilder builder = new StringBuilder();
+
+        for (String tag : orderedTags) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+
+            builder.append('[').append(tag).append(']');
+        }
+
+        return builder.toString();
     }
 }

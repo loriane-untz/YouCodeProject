@@ -34,7 +34,7 @@ public class PostRepo {
         return new HashSet<>(allowedTags);
     }
 
-    // Returns every post that matches at least one of the selected tags.
+    // Returns every post that contains all of the selected tags.
     // If no tags are selected, the full post list is returned.
     public List<Post> filterByTags(Set<String> selectedTags) {
         if (selectedTags == null || selectedTags.isEmpty()) {
@@ -44,11 +44,8 @@ public class PostRepo {
         List<Post> filteredPosts = new ArrayList<>();
 
         for (Post post : posts) {
-            for (String tag : post.getTags()) {
-                if (selectedTags.contains(tag)) {
-                    filteredPosts.add(post);
-                    break;
-                }
+            if (post.getTags().containsAll(selectedTags)) {
+                filteredPosts.add(post);
             }
         }
 

@@ -7,6 +7,9 @@ import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -16,20 +19,22 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 import main.java.model.Post;
 
 public class PanelPostThread extends JPanel {
+    private static final double PANEL_MARGIN_INCHES = 1.0;
     private static final double RESPONSE_BOX_HEIGHT_INCHES = 0.5;
     private static final double DIVIDER_OFFSET_INCHES = 1.0;
+    private static final double ACTIVE_COMPOSER_THREAD_GAP_INCHES = 0.5;
 
     // Effects: creates a view-post screen showing the selected post and a button
     // that returns the user to the home page.
     public PanelPostThread(Post post, Runnable onBack) {
         setLayout(new BorderLayout(0, 16));
-        setBorder(BorderFactory.createEmptyBorder(36, 36, 36, 36));
+        int outerMargin = getOuterMarginPixels();
+        setBorder(BorderFactory.createEmptyBorder(outerMargin, outerMargin, outerMargin, outerMargin));
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
@@ -48,7 +53,7 @@ public class PanelPostThread extends JPanel {
         postContent.setOpaque(false);
         postContent.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel tags = new JLabel("Tags: " + post.getTags());
+        JLabel tags = new JLabel(formatTags(post.getTags()));
         JLabel body = new JLabel("<html>" + post.getBody() + "</html>");
         tags.setAlignmentX(LEFT_ALIGNMENT);
         body.setAlignmentX(LEFT_ALIGNMENT);
@@ -121,9 +126,17 @@ public class PanelPostThread extends JPanel {
         responseButtonRow.add(postResponseButton, BorderLayout.EAST);
         responseButtonRow.setVisible(false);
 
+        JPanel threadGapSpacer = new JPanel();
+        threadGapSpacer.setOpaque(false);
+        threadGapSpacer.setPreferredSize(new Dimension(0, getActiveComposerThreadGapPixels()));
+        threadGapSpacer.setMinimumSize(new Dimension(0, getActiveComposerThreadGapPixels()));
+        threadGapSpacer.setMaximumSize(new Dimension(Integer.MAX_VALUE, getActiveComposerThreadGapPixels()));
+        threadGapSpacer.setVisible(false);
+
         respondButton.addActionListener(event -> {
             responseScrollPane.setVisible(true);
             responseButtonRow.setVisible(true);
+            threadGapSpacer.setVisible(!post.getResponses().isEmpty());
             bottomSection.revalidate();
             bottomSection.repaint();
         });
@@ -132,6 +145,7 @@ public class PanelPostThread extends JPanel {
             responseArea.setText("");
             responseScrollPane.setVisible(false);
             responseButtonRow.setVisible(false);
+            threadGapSpacer.setVisible(false);
             bottomSection.revalidate();
             bottomSection.repaint();
         });
@@ -147,6 +161,7 @@ public class PanelPostThread extends JPanel {
             responseArea.setText("");
             responseScrollPane.setVisible(false);
             responseButtonRow.setVisible(false);
+            threadGapSpacer.setVisible(false);
             refreshResponseList(post, responseList, responseListScrollPane.getViewport().getWidth());
             bottomSection.revalidate();
             bottomSection.repaint();
@@ -160,8 +175,14 @@ public class PanelPostThread extends JPanel {
         responseComposer.add(responseButtonRow);
         responseComposer.add(Box.createVerticalStrut(2));
 
+        JPanel responseThreadArea = new JPanel();
+        responseThreadArea.setLayout(new BoxLayout(responseThreadArea, BoxLayout.Y_AXIS));
+        responseThreadArea.setOpaque(false);
+        responseThreadArea.add(threadGapSpacer);
+        responseThreadArea.add(responseListScrollPane);
+
         bottomSection.add(responseComposer, BorderLayout.NORTH);
-        bottomSection.add(responseListScrollPane, BorderLayout.CENTER);
+        bottomSection.add(responseThreadArea, BorderLayout.CENTER);
 
         JPanel contentArea = new JPanel(new BorderLayout());
         contentArea.setOpaque(false);
@@ -180,9 +201,10 @@ public class PanelPostThread extends JPanel {
         responseList.removeAll();
 
         int textWidth = Math.max(180, availableWidth - 40);
+        java.util.List<String> responses = post.getResponses();
 
-        for (String response : post.getResponses()) {
-            responseList.add(buildResponseRow(response, textWidth));
+        for (int i = responses.size() - 1; i >= 0; i--) {
+            responseList.add(buildResponseRow(responses.get(i), textWidth));
         }
 
         responseList.revalidate();
@@ -214,8 +236,15 @@ public class PanelPostThread extends JPanel {
             BorderFactory.createEmptyBorder(8, 12, 8, 12)
         ));
 
-        JLabel responseText = new JLabel(buildWrappedHtml(response, textWidth));
-        responseText.setVerticalAlignment(SwingConstants.TOP);
+        JTextArea responseText = new JTextArea(response);
+        responseText.setLineWrap(true);
+        responseText.setWrapStyleWord(true);
+        responseText.setEditable(false);
+        responseText.setFocusable(false);
+        responseText.setOpaque(false);
+        responseText.setBorder(null);
+        responseText.setFont(new JLabel().getFont());
+        responseText.setSize(new Dimension(textWidth, Short.MAX_VALUE));
         responseCard.add(responseText, BorderLayout.CENTER);
 
         int preferredHeight = responseCard.getPreferredSize().height;
@@ -240,15 +269,41 @@ public class PanelPostThread extends JPanel {
         return (int) Math.round(screenDpi * DIVIDER_OFFSET_INCHES);
     }
 
-    // Effects: returns HTML that wraps the response text to the given width while
-    // preserving line breaks and escaping special characters.
-    private String buildWrappedHtml(String response, int textWidth) {
-        String escapedResponse = response
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\n", "<br>");
-
-        return "<html><div style='width:" + textWidth + "px;'>" + escapedResponse + "</div></html>";
+    // Effects: returns the pixel distance that most closely matches a 1 inch gap
+    // between the active response composer buttons and the existing response thread.
+    private int getActiveComposerThreadGapPixels() {
+        int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
+        return (int) Math.round(screenDpi * ACTIVE_COMPOSER_THREAD_GAP_INCHES);
     }
+
+    // Effects: returns the pixel margin that most closely matches a 1 inch outer
+    // border on the current display.
+    private int getOuterMarginPixels() {
+        int screenDpi = Toolkit.getDefaultToolkit().getScreenResolution();
+        return (int) Math.round(screenDpi * PANEL_MARGIN_INCHES);
+    }
+
+    // Effects: returns the post's tags as bracketed labels such as
+    // [English] [Finances].
+    private String formatTags(Set<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+
+        java.util.List<String> orderedTags = new ArrayList<>(tags);
+        Collections.sort(orderedTags);
+
+        StringBuilder builder = new StringBuilder();
+
+        for (String tag : orderedTags) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+
+            builder.append('[').append(tag).append(']');
+        }
+
+        return builder.toString();
+    }
+
 }
